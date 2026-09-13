@@ -10,7 +10,7 @@ class Population2 {
   late List<Organism> organisms; // The organisms in the Population
 
   // Species in the Population. Note that the species should comprise all the genomes
-  late List<Organisms> species;
+  late List<Species> species;
 
   // ******* Member variables used during reproduction *******
   // For holding the genetic innovations of the newest generation
@@ -158,7 +158,7 @@ class Population2 {
       speciesIt.begin();
 
       if (speciesIt.isEnd) {
-        final newSpecies = Organisms.makeFromID(++speciesCounter);
+        final newSpecies = Species.makeFromID(++speciesCounter);
         species.add(newSpecies);
         newSpecies.addOrganism(neat, curOrg);
         // neat.log("Adding organism to Species: ", (int)species.size());
@@ -188,7 +188,7 @@ class Population2 {
 
         // If we didn't find a match, create a new species
         if (compOrg != null) {
-          final newSpecies = Organisms.makeFromID(++speciesCounter);
+          final newSpecies = Species.makeFromID(++speciesCounter);
           species.add(newSpecies);
           newSpecies.addOrganism(neat, curOrg);
           curOrg.species = newSpecies;
@@ -208,7 +208,7 @@ class Population2 {
     int curspeciesIndex = 0; // Steps through species
     int curspeciesEndIndex = species.length;
     Organism? comporg; // Organism for comparison
-    Organisms newspecies; // For adding a new species
+    Species newspecies; // For adding a new species
 
     int counter = 0; // Species counter
     curspeciesIndex = 0;
@@ -219,7 +219,7 @@ class Population2 {
 
       if (species.isEmpty) {
         // Create the first species
-        newspecies = Organisms.makeFromID(++counter);
+        newspecies = Species.makeFromID(++counter);
         species.add(newspecies);
         newspecies.addOrganism(neat, curOrg); // Add the current organism
         // neat.log("Adding organism to Species: ", (int)species.size());
@@ -245,7 +245,7 @@ class Population2 {
 
         // If we didn't find a match, create a new species
         if (comporg != null) {
-          newspecies = Organisms.makeFromID(++counter);
+          newspecies = Species.makeFromID(++counter);
           species.add(newspecies);
           newspecies.addOrganism(neat, curOrg); // Add the current organism
           curOrg.species = newspecies; // Point organism to its species
@@ -285,7 +285,7 @@ class Population2 {
     int totalExpected = 0; // precision checking
     int totalOrganisms = organisms.length;
     int maxExpected = 0;
-    Organisms? bestSpecies;
+    Species? bestSpecies;
     int finalExpected = 0;
 
     int pause = 0;
@@ -358,7 +358,7 @@ class Population2 {
   }
 
   bool epoch2(Neat neat, int generation) {
-    Organisms curSpecies;
+    Species curSpecies;
     int curSpeciesIndex = 0;
     int curSpeciesEndIndex = 0;
 
@@ -376,7 +376,7 @@ class Population2 {
     int totalExpected = 0; // precision checking
     int totalOrganisms = organisms.length;
     int maxExpected = 0;
-    Organisms? bestSpecies;
+    Species? bestSpecies;
     int finalExpected = 0;
 
     int pause;
@@ -389,7 +389,7 @@ class Population2 {
     int oneTenthStolen = 0;
 
     // Species sorted by max fit org in Species
-    List<Organisms> sortedSpecies = [];
+    List<Species> sortedSpecies = [];
     // Babies taken from the bad species and given to the champs
     int stolenBabies = 0;
 

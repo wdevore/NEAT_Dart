@@ -238,491 +238,276 @@ class Species {
     Population pop,
     List<Species> sortedSpecies,
   ) {
-    // neat.log("########## Species::reproduce START ############");
-    int curorgIndex = 0;
-
-    int poolsize = 0; // The number of Organisms in the old generation
-
-    int orgNum = 0; // Random variable
-
-    Organism mom; // Parent Organisms
-    Organism dad;
-    Organism baby; // The new Organism
-
-    Genome newGenome; // For holding baby's genes
-
-    int curspeciesIndex = 0; // For adding baby
-    int curspeciesEndIndex = pop.species.length;
-    Species newspecies; // For babies in new Species
-    Organism? comporg; // For Species determination through comparison
-
-    Species randspecies; // For mating outside the Species
-    double randMult = 0.0;
-    int randSpeciesNum = 0;
-
-    bool outside = false;
-
-    bool found = false; // When a Species is found
-
-    bool champDone = false; // Flag the preservation of the champion
-
-    Organism theChamp;
-
-    int giveup = 0; // For giving up finding a mate outside the species
-
-    bool mutStructBaby = false;
-    bool mateBaby = false;
-
-    // The weight mutation power is species specific depending on its age
-    double mutPower = neat.weightMutPower;
-
-    int linkCount = 0;
-    int nodeCount = 0;
-
-    // Compute total fitness of species for a roulette wheel
-    // Note: You don't get much advantage from a roulette here
-    //  because the size of a species is relatively small.
-    //  But you can use it by using the roulette code here
-    // for(curorg=organisms.begin();curorg!=organisms.end();++curorg) {
-    //   total_fitness+=(*curorg).fitness;
-    // }
-
-    // Check for a mistake
     if (expectedOffspring > 0 && organisms.isEmpty) {
-      // neat.log("ERROR:  ATTEMPT TO REPRODUCE OUT OF EMPTY SPECIES");
       return false;
     }
 
-    poolsize = organisms.length - 1;
+    final theChamp = organisms.last;
+    bool champPreserved = false;
 
-    theChamp = organisms.last;
+    // Create the designated number of offspring for this species
+    for (int count = 0; count < expectedOffspring; count++) {
+      Organism baby;
 
-    // Create the designated number of offspring for the Species
-    // one at a time
-    for (var count = 0; count < expectedOffspring; count++) {
-      mutStructBaby = false;
-      mateBaby = false;
-
-      outside = false;
-
-      // Debug Trap
-      if (expectedOffspring > neat.popSize) {
-        // neat.log("ALERT: EXPECTED OFFSPRING = ", expected_offspring);
+      // 1. Superchamp offspring (stolen babies)
+      if (theChamp.superChampOffspring > 0) {
+        baby = _createSuperChampOffspring(
+          neat,
+          generation,
+          pop,
+          theChamp,
+          count,
+        );
       }
-
-      // If we have a super_champ (Population champion), finish off some special clones
-      if ((theChamp.superChampOffspring) > 0) {
-        mom = theChamp;
-        newGenome = mom.gnome.duplicate(neat, count);
-
-        // Most superchamp offspring will have their connection weights mutated only
-        // The last offspring will be an exact duplicate of this super_champ
-        // Note: Superchamp offspring only occur with stolen babies!
-        //       Settings used for published experiments did not use this
-        if (theChamp.superChampOffspring > 1) {
-          if ((neat.randFloat() < 0.8) || (neat.mutateAddLinkProb == 0.0)) {
-            // ABOVE LINE IS FOR:
-            // Make sure no links get added when the system has link adding disabled
-            newGenome.mutateLinkWeights(neat, mutPower, 1.0, Mutator.gaussian);
-            // neat.log("called mutate_link_weights.");
-          } else {
-            // Sometimes we add a link to a superchamp
-            newGenome.genesis(neat, generation);
-            newGenome.mutateAddLink(
-              neat,
-              (pop.innovations),
-              pop.curInnovNum,
-              neat.newlinkTries,
-            );
-            mutStructBaby = true;
-            // neat.log("called mutate_add_link.");
-          }
-        }
-
-        baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
-
-        if (theChamp.superChampOffspring == 1) {
-          if (theChamp.popChamp) {
-            // neat.log("The new org baby's genome is ", baby.gnome.genome_id);
-            baby.popChampChild = true;
-            baby.highFit = mom.origFitness;
-          }
-        }
-
-        theChamp.superChampOffspring--;
+      // 2. Species champion preservation (clone without mutation if species is large enough)
+      else if (!champPreserved && expectedOffspring > 5) {
+        baby = _preserveChampion(neat, generation, theChamp, count);
+        champPreserved = true;
       }
-      // If we have a Species champion, just clone it
-      else if (!champDone && expectedOffspring > 5) {
-        mom = theChamp; // Mom is the champ
-
-        newGenome = mom.gnome.duplicate(neat, count);
-        // neat.log("mom.gnome.duplicate: ", newGenome.genome_id);
-
-        // Baby is just like mommy
-        baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
-
-        champDone = true;
+      // 3. Asexual reproduction (Mutation only)
+      else if (neat.randFloat() < neat.mutateOnlyProb ||
+          organisms.length <= 1) {
+        baby = _createMutatedOffspring(neat, generation, pop, count);
       }
-      // First, decide whether to mate or mutate
-      // If there is only one organism in the pool, then always mutate
-      else if ((neat.randFloat() < neat.mutateOnlyProb) || poolsize == 0) {
-        // Choose the random parent
-        // neat.log("Choose the random parent: poolsize: ", poolsize);
-
-        // RANDOM PARENT CHOOSER
-        orgNum = neat.randInt(0, poolsize);
-        curorgIndex = 0;
-        for (var orgcount = 0; orgcount < orgNum; orgcount++) {
-          ++curorgIndex;
-        }
-
-        ////Roulette Wheel
-        // marble=randfloat()*total_fitness;
-        // curorg=organisms.begin();
-        // spin=(*curorg).fitness;
-        // while(spin<marble) {
-        //++curorg;
-
-        ////Keep the wheel spinning
-        // spin+=(*curorg).fitness;
-        // }
-        ////Finished roulette
-        //
-
-        mom = organisms[curorgIndex];
-
-        newGenome = mom.gnome.duplicate(neat, count);
-
-        // Do the mutation depending on probabilities of various mutations
-
-        if (neat.randFloat() < neat.mutateAddNodeProb) {
-          newGenome.mutateAddNode(
-            neat,
-            pop.innovations,
-            pop.curNodeId,
-            pop.curInnovNum,
-          );
-          mutStructBaby = true;
-          nodeCount++;
-          // neat.log("mutate_add_node: ", nodeCount);
-        } else if (neat.randFloat() < neat.mutateAddLinkProb) {
-          newGenome.genesis(neat, generation);
-          newGenome.mutateAddLink(
-            neat,
-            pop.innovations,
-            pop.curInnovNum,
-            neat.newlinkTries,
-          );
-
-          mutStructBaby = true;
-          linkCount++;
-          // if (linkCount == 74 || linkCount == 73)
-          //     std::cout << "break at " << linkCount << std::endl;
-          // neat.log("mutate_add_link: ", linkCount);
-        }
-        // NOTE:  A link CANNOT be added directly after a node was added because the phenotype
-        //        will not be appropriately altered to reflect the change
-        else {
-          // If we didn't do a structural mutation, we do the other kinds
-          // neat.log("Without mating");
-
-          if (neat.randFloat() < neat.mutateRandomTraitProb) {
-            // neat.log("mutate_random_trait");
-            newGenome.mutateRandomTrait(neat);
-          }
-
-          if (neat.randFloat() < neat.mutateLinkTraitProb) {
-            // neat.log("mutate_link_trait");
-            newGenome.mutateLinkTrait(neat, 1);
-          }
-
-          if (neat.randFloat() < neat.mutateNodeTraitProb) {
-            // neat.log("mutate_node_trait");
-            newGenome.mutateNodeTrait(neat, 1);
-          }
-
-          if (neat.randFloat() < neat.mutateLinkWeightsProb) {
-            // neat.log("mutate_link_weights");
-            newGenome.mutateLinkWeights(neat, mutPower, 1.0, Mutator.gaussian);
-          }
-
-          if (neat.randFloat() < neat.mutateToggleEnableProb) {
-            // neat.log("mutate_toggle_enable");
-            newGenome.mutateToggleEnable(neat, 1);
-          }
-
-          if (neat.randFloat() < neat.mutateGeneReenableProb) {
-            // neat.log("mutate_gene_reenable");
-            newGenome.mutateGeneReenable();
-          }
-        }
-
-        baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
-      }
-      // Otherwise we should mate
+      // 4. Sexual reproduction (Mating + optional mutation)
       else {
-        // Choose the random mom
-        // neat.log("choose mom");
-
-        orgNum = neat.randInt(0, poolsize);
-        curorgIndex = 0;
-
-        for (var orgcount = 0; orgcount < orgNum; orgcount++) {
-          ++curorgIndex;
-        }
-
-        ////Roulette Wheel
-        // marble=randfloat()*total_fitness;
-        // curorg=organisms.begin();
-        // spin=(*curorg).fitness;
-        // while(spin<marble) {
-        //++curorg;
-
-        ////Keep the wheel spinning
-        // spin+=(*curorg).fitness;
-        // }
-        ////Finished roulette
-        //
-
-        mom = organisms[curorgIndex];
-        // Choose random dad
-
-        if (neat.randFloat() > neat.interspeciesMateRate) {
-          // Mate within Species
-          // neat.log("choose dad");
-
-          orgNum = neat.randInt(0, poolsize);
-          curorgIndex = 0;
-          for (var orgcount = 0; orgcount < orgNum; orgcount++) {
-            ++curorgIndex;
-          }
-
-          ////Use a roulette wheel
-          // marble=randfloat()*total_fitness;
-          // curorg=organisms.begin();
-          // spin=(*curorg).fitness;
-          // while(spin<marble) {
-          //++curorg;
-          // }
-
-          ////Keep the wheel spinning
-          // spin+=(*curorg).fitness;
-          // }
-          ////Finished roulette
-          //
-
-          dad = organisms[curorgIndex];
-        } else {
-          // Mate outside Species
-          randspecies = this;
-          // neat.log("mate outside species");
-
-          // Select a random species
-          giveup = 0; // Give up if you cant find a different Species
-          while (randspecies == this && (giveup < 5)) {
-            // This old way just chose any old species
-            // randspeciesnum=randint(0,(pop.species).size()-1);
-
-            // Choose a random species tending towards better species
-            randMult = neat.gaussRand() / 4;
-            if (randMult > 1.0) randMult = 1.0;
-            // This tends to select better species
-            randSpeciesNum = (randMult * (sortedSpecies.length - 1.0) + 0.5)
-                .floor();
-
-            curorgIndex = 0;
-            for (var spcount = 0; spcount < randSpeciesNum; spcount++) {
-              ++curorgIndex;
-            }
-
-            randspecies = sortedSpecies[curorgIndex];
-
-            ++giveup;
-          }
-
-          // OLD WAY: Choose a random dad from the random species
-          // Select a random dad from the random Species
-          // NOTE:  It is possible that a mating could take place
-          //        here between the mom and a baby from the NEW
-          //        generation in some other Species
-          // orgnum=randint(0,(randspecies.organisms).size()-1);
-          // curorg=(randspecies.organisms).begin();
-          // for(orgcount=0;orgcount<orgnum;orgcount++)
-          //   ++curorg;
-          // dad=(*curorg);
-
-          // New way: Make dad be a champ from the random species
-          dad = randspecies.organisms.first;
-
-          outside = true;
-        }
-
-        // Perform mating based on probabilities of differrent mating types
-        if (neat.randFloat() < neat.mateMultipointProb) {
-          newGenome = mom.gnome.mateMultipoint(
-            neat,
-            dad.gnome,
-            count,
-            mom.origFitness,
-            dad.origFitness,
-            outside,
-          );
-          // neat.log("mate_multipoint");
-        } else if (neat.randFloat() <
-            (neat.mateMultipointAvgProb /
-                (neat.mateMultipointAvgProb + neat.mateSinglepointProb))) {
-          newGenome = mom.gnome.mateMultipointAvg(
-            neat,
-            dad.gnome,
-            count,
-            mom.origFitness,
-            dad.origFitness,
-            outside,
-          );
-          // neat.log("mate_multipoint_avg");
-        } else {
-          newGenome = mom.gnome.mateSinglePoint(neat, dad.gnome, count);
-          // neat.log("mate_singlepoint");
-        }
-
-        mateBaby = true;
-
-        // Determine whether to mutate the baby's Genome
-        // This is done randomly or if the mom and dad are the same organism
-        if ((neat.randFloat() > neat.mateOnlyProb) ||
-            (dad.gnome.genomeId == mom.gnome.genomeId) ||
-            (dad.gnome.compatibility(neat, mom.gnome) == 0.0)) {
-          // Do the mutation depending on probabilities of
-          // various mutations
-          if (neat.randFloat() < neat.mutateAddNodeProb) {
-            newGenome.mutateAddNode(
-              neat,
-              pop.innovations,
-              pop.curNodeId,
-              pop.curInnovNum,
-            );
-            // neat.log("mutate_add_node");
-            mutStructBaby = true;
-          } else if (neat.randFloat() < neat.mutateAddLinkProb) {
-            newGenome.genesis(neat, generation);
-            newGenome.mutateAddLink(
-              neat,
-              pop.innovations,
-              pop.curInnovNum,
-              neat.newlinkTries,
-            );
-            // neat.log("mutate_add_link");
-
-            mutStructBaby = true;
-          } else {
-            // Only do other mutations when not doing sturctural mutations
-            // neat.log("With mating");
-
-            if (neat.randFloat() < neat.mutateRandomTraitProb) {
-              // neat.log("mutate_random_trait");
-              newGenome.mutateRandomTrait(neat);
-            }
-
-            if (neat.randFloat() < neat.mutateLinkTraitProb) {
-              // neat.log("mutate_link_trait");
-              newGenome.mutateLinkTrait(neat, 1);
-            }
-
-            if (neat.randFloat() < neat.mutateNodeTraitProb) {
-              // neat.log("mutate_node_trait");
-              newGenome.mutateNodeTrait(neat, 1);
-            }
-
-            if (neat.randFloat() < neat.mutateLinkWeightsProb) {
-              // neat.log("mutate_link_weights");
-              newGenome.mutateLinkWeights(
-                neat,
-                mutPower,
-                1.0,
-                Mutator.gaussian,
-              );
-            }
-
-            if (neat.randFloat() < neat.mutateToggleEnableProb) {
-              // neat.log("mutate_toggle_enable");
-              newGenome.mutateToggleEnable(neat, 1);
-            }
-
-            if (neat.randFloat() < neat.mutateGeneReenableProb) {
-              // neat.log("mutate_gene_reenable");
-              newGenome.mutateGeneReenable();
-            }
-          }
-
-          // Create the baby
-          baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
-        } else {
-          // Create the baby without mutating first
-          baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
-        }
+        baby = _createMatedOffspring(
+          neat,
+          generation,
+          pop,
+          sortedSpecies,
+          count,
+        );
       }
 
-      // Add the baby to its proper Species
-      // If it doesn't fit a Species, create a new one
-
-      baby.mutStructBaby = mutStructBaby;
-      baby.mateBaby = mateBaby;
-
-      if (pop.species.isEmpty) {
-        // Create the first species
-        newspecies = Species.makeFromNovel(++pop.lastSpecies, true);
-        pop.species.add(newspecies);
-
-        newspecies.addOrganism(neat, baby); // Add the baby
-        baby.species = newspecies; // Point the baby to its species
-      } else {
-        comporg = pop.species[curspeciesIndex].first();
-        found = false;
-        while (curspeciesIndex != curspeciesEndIndex && !found) {
-          if (comporg == null) {
-            // Keep searching for a matching species
-            ++curspeciesIndex;
-            if (curspeciesIndex != curspeciesEndIndex) {
-              comporg = pop.species[curspeciesIndex].first();
-            }
-          } else if (baby.gnome.compatibility(neat, comporg.gnome) <
-              neat.compatThreshold) {
-            // Found compatible species, so add this organism to it
-            pop.species[curspeciesIndex].addOrganism(neat, baby);
-            // Point organism to its species
-            baby.species = pop.species[curspeciesIndex];
-            found = true; // Note the search is over
-          } else {
-            // Keep searching for a matching species
-            ++curspeciesIndex;
-            if (curspeciesIndex != curspeciesEndIndex) {
-              comporg = pop.species[curspeciesIndex].first();
-            }
-          }
-        }
-
-        // If we didn't find a match, create a new species
-        if (found == false) {
-          newspecies = Species.makeFromNovel(++pop.lastSpecies, true);
-
-          // neat.log("CREATING NEW SPECIES ", pop.last_species);
-          pop.species.add(newspecies);
-          newspecies.addOrganism(neat, baby); // Add the baby
-          baby.species = newspecies; // Point baby to its species
-        }
-      }
-    } // End for loop
-
-    if (linkCount > 0) {
-      neat.logValue("Links added during reproduction: ", linkCount, false);
+      // 5. Place baby into its compatible species (or spawn a new species)
+      _speciateBaby(neat, pop, baby);
     }
-    if (nodeCount > 0) {
-      neat.logValue("Nodes added during reproduction: ", nodeCount, false);
-    }
-
-    neat.log("########## Species::reproduce END ############");
 
     return true;
+  }
+
+  // 1. Superchamp Offspring
+  Organism _createSuperChampOffspring(
+    Neat neat,
+    int generation,
+    Population pop,
+    Organism theChamp,
+    int count,
+  ) {
+    final newGenome = theChamp.gnome.duplicate(neat, count);
+    bool mutStruct = false;
+
+    if (theChamp.superChampOffspring > 1) {
+      if (neat.randFloat() < 0.8 || neat.mutateAddLinkProb == 0.0) {
+        newGenome.mutateLinkWeights(
+          neat,
+          neat.weightMutPower,
+          1.0,
+          Mutator.gaussian,
+        );
+      } else {
+        newGenome.genesis(neat, generation);
+        newGenome.mutateAddLink(
+          neat,
+          pop.innovations,
+          pop.curInnovNum,
+          neat.newlinkTries,
+        );
+        mutStruct = true;
+      }
+    }
+
+    final baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
+    baby.mutStructBaby = mutStruct;
+
+    if (theChamp.superChampOffspring == 1 && theChamp.popChamp) {
+      baby.popChampChild = true;
+      baby.highFit = theChamp.origFitness;
+    }
+
+    theChamp.superChampOffspring--;
+    return baby;
+  }
+
+  // 2. Preserve Species Champion
+  Organism _preserveChampion(
+    Neat neat,
+    int generation,
+    Organism theChamp,
+    int count,
+  ) {
+    final newGenome = theChamp.gnome.duplicate(neat, count);
+    return Organism.makeFromGenome(neat, 0.0, newGenome, generation);
+  }
+
+  // 3. Asexual Reproduction (Mutation Only)
+  Organism _createMutatedOffspring(
+    Neat neat,
+    int generation,
+    Population pop,
+    int count,
+  ) {
+    final mom = organisms[neat.randInt(0, organisms.length - 1)];
+    final newGenome = mom.gnome.duplicate(neat, count);
+
+    final bool mutStruct = _applyMutations(neat, pop, newGenome, generation);
+
+    final baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
+    baby.mutStructBaby = mutStruct;
+    return baby;
+  }
+
+  // 4. Sexual Reproduction (Mating)
+  Organism _createMatedOffspring(
+    Neat neat,
+    int generation,
+    Population pop,
+    List<Species> sortedSpecies,
+    int count,
+  ) {
+    final mom = organisms[neat.randInt(0, organisms.length - 1)];
+    Organism dad;
+    bool outside = false;
+
+    // Intraspecies vs Interspecies mating
+    if (neat.randFloat() > neat.interspeciesMateRate ||
+        sortedSpecies.length <= 1) {
+      dad = organisms[neat.randInt(0, organisms.length - 1)];
+    } else {
+      // Pick a dad from another species (tending towards better species)
+      final otherSpecies = _selectRandomOtherSpecies(neat, sortedSpecies);
+      dad = otherSpecies.organisms.first;
+      outside = true;
+    }
+
+    // Perform Crossover
+    final Genome newGenome;
+    if (neat.randFloat() < neat.mateMultipointProb) {
+      newGenome = mom.gnome.mateMultipoint(
+        neat,
+        dad.gnome,
+        count,
+        mom.origFitness,
+        dad.origFitness,
+        outside,
+      );
+    } else if (neat.randFloat() <
+        (neat.mateMultipointAvgProb /
+            (neat.mateMultipointAvgProb + neat.mateSinglepointProb))) {
+      newGenome = mom.gnome.mateMultipointAvg(
+        neat,
+        dad.gnome,
+        count,
+        mom.origFitness,
+        dad.origFitness,
+        outside,
+      );
+    } else {
+      newGenome = mom.gnome.mateSinglePoint(neat, dad.gnome, count);
+    }
+
+    // Optional mutation after mating
+    bool mutStruct = false;
+    final bool isSameParent =
+        dad.gnome.genomeId == mom.gnome.genomeId ||
+        dad.gnome.compatibility(neat, mom.gnome) == 0.0;
+    if (neat.randFloat() > neat.mateOnlyProb || isSameParent) {
+      mutStruct = _applyMutations(neat, pop, newGenome, generation);
+    }
+
+    final baby = Organism.makeFromGenome(neat, 0.0, newGenome, generation);
+    baby.mateBaby = true;
+    baby.mutStructBaby = mutStruct;
+    return baby;
+  }
+
+  Species _selectRandomOtherSpecies(Neat neat, List<Species> sortedSpecies) {
+    for (int attempts = 0; attempts < 5; attempts++) {
+      final double randMult = (neat.gaussRand() / 4.0).clamp(0.0, 1.0);
+      final int idx = (randMult * (sortedSpecies.length - 1.0) + 0.5)
+          .floor()
+          .clamp(0, sortedSpecies.length - 1);
+      if (sortedSpecies[idx] != this) {
+        return sortedSpecies[idx];
+      }
+    }
+    return this;
+  }
+
+  // 5. Common Mutation Dispatcher
+  bool _applyMutations(
+    Neat neat,
+    Population pop,
+    Genome genome,
+    int generation,
+  ) {
+    if (neat.randFloat() < neat.mutateAddNodeProb) {
+      genome.mutateAddNode(
+        neat,
+        pop.innovations,
+        pop.curNodeId,
+        pop.curInnovNum,
+      );
+      return true;
+    } else if (neat.randFloat() < neat.mutateAddLinkProb) {
+      genome.genesis(neat, generation);
+      genome.mutateAddLink(
+        neat,
+        pop.innovations,
+        pop.curInnovNum,
+        neat.newlinkTries,
+      );
+      return true;
+    } else {
+      if (neat.randFloat() < neat.mutateRandomTraitProb) {
+        genome.mutateRandomTrait(neat);
+      }
+      if (neat.randFloat() < neat.mutateLinkTraitProb) {
+        genome.mutateLinkTrait(neat, 1);
+      }
+      if (neat.randFloat() < neat.mutateNodeTraitProb) {
+        genome.mutateNodeTrait(neat, 1);
+      }
+      if (neat.randFloat() < neat.mutateLinkWeightsProb) {
+        genome.mutateLinkWeights(
+          neat,
+          neat.weightMutPower,
+          1.0,
+          Mutator.gaussian,
+        );
+      }
+      if (neat.randFloat() < neat.mutateToggleEnableProb) {
+        genome.mutateToggleEnable(neat, 1);
+      }
+      if (neat.randFloat() < neat.mutateGeneReenableProb) {
+        genome.mutateGeneReenable();
+      }
+      return false;
+    }
+  }
+
+  // 6. Speciate Newborn Baby
+  void _speciateBaby(Neat neat, Population pop, Organism baby) {
+    final int originalCount = pop.species.length;
+
+    for (int i = 0; i < originalCount; i++) {
+      final curSpecies = pop.species[i];
+      final compOrg = curSpecies.first();
+
+      if (baby.gnome.compatibility(neat, compOrg.gnome) <
+          neat.compatThreshold) {
+        curSpecies.addOrganism(neat, baby);
+        baby.species = curSpecies;
+        return;
+      }
+    }
+
+    // No compatible species found: spawn a new novel species
+    final newSpecies = Species.makeFromNovel(++pop.lastSpecies, true);
+    pop.species.add(newSpecies);
+    newSpecies.addOrganism(neat, baby);
+    baby.species = newSpecies;
   }
 
   bool rank() {
