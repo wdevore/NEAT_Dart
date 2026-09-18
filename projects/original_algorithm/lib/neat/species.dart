@@ -14,12 +14,12 @@ class Species {
   bool checked = false;
   bool obliterate =
       false; // Allows killing off in competitive coevolution stagnation
-  late List<Organism> organisms; // The organisms in the Species
+  List<Organism> organisms = []; // The organisms in the Species
   // std::vector<Organism*> reproduction_pool;  //The organisms for reproduction- NOT NEEDED
   // If this is too long ago, the Species will goes extinct
   int ageOfLastImprovement = 0;
-  double averageEst =
-      0.0; // When playing real-time allows estimating average fitness
+  // When playing real-time allows estimating average fitness
+  double averageEst = 0.0;
 
   Species();
 

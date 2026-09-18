@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'dart:math' as mat;
 
 import 'package:flutter/foundation.dart';
@@ -70,7 +72,9 @@ class Neat {
   /// The Mersenne Twister random number generator.
   late RandomMt19937 random;
 
-  Neat() {
+  Neat();
+
+  void initialize() {
     random = RandomMt19937(seed: randomSeed);
   }
 
@@ -213,6 +217,7 @@ class Neat {
 
   // Log to a file
   IOSink? _logSink;
+  Timer? _flushTimer;
 
   /// Opens a log file at the given path for writing.
   ///
@@ -223,6 +228,11 @@ class Neat {
       await closeLog();
       final file = File(filePath);
       _logSink = file.openWrite(mode: FileMode.write);
+
+      // Periodically flush every 2 seconds
+      _flushTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        _logSink?.flush();
+      });
     } catch (e) {
       // In a real application, you might use a more robust logging package
       // or error handling strategy.
@@ -237,10 +247,24 @@ class Neat {
     _logSink?.writeln(message);
   }
 
-  /// Flushes and closes the log file stream.
+  /// Manually flushes buffered log entries to disk.
+  Future<void> flushLog() async {
+    if (kDebugMode) {
+      print('Flushing log file');
+    }
+    await _logSink?.flush();
+  }
+
+  /// Flushes and closes the log file stream
   Future<void> closeLog() async {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    await _logSink?.flush();
     await _logSink?.close();
     _logSink = null;
+    if (kDebugMode) {
+      print('Closed log file');
+    }
   }
 
   void logValue(String message, int value, bool enabled) {
@@ -259,5 +283,129 @@ class Neat {
     if (enabled) {
       log("$message: $value");
     }
+  }
+
+  void loadNeatParams(String s) async {
+    // 1. Load the raw text from the .ne asset
+    final String fileContent = await rootBundle.loadString(
+      'lib/assets/p2test.ne',
+    );
+
+    // 2. Split into lines for your NEAT parsers
+    final List<String> lines = fileContent.split('\n');
+
+    var fields = lines[0].split(' ');
+    experiment = int.parse(fields[1]);
+
+    fields = lines[1].split(' ');
+    traitParamMutProb = double.parse(fields[1]);
+
+    fields = lines[2].split(' ');
+    traitMutationPower = double.parse(fields[1]);
+
+    fields = lines[3].split(' ');
+    linktraitMutSig = double.parse(fields[1]);
+
+    fields = lines[4].split(' ');
+    nodetraitMutSig = double.parse(fields[1]);
+
+    fields = lines[5].split(' ');
+    weightMutPower = double.parse(fields[1]);
+
+    fields = lines[6].split(' ');
+    recurProb = double.parse(fields[1]);
+
+    fields = lines[7].split(' ');
+    disjointCoeff = double.parse(fields[1]);
+
+    fields = lines[8].split(' ');
+    excessCoeff = double.parse(fields[1]);
+
+    fields = lines[9].split(' ');
+    mutdiffCoeff = double.parse(fields[1]);
+
+    fields = lines[10].split(' ');
+    compatThreshold = double.parse(fields[1]);
+
+    fields = lines[11].split(' ');
+    ageSignificance = double.parse(fields[1]);
+
+    fields = lines[12].split(' ');
+    survivalThresh = double.parse(fields[1]);
+
+    fields = lines[13].split(' ');
+    mutateOnlyProb = double.parse(fields[1]);
+
+    fields = lines[14].split(' ');
+    mutateRandomTraitProb = double.parse(fields[1]);
+
+    fields = lines[15].split(' ');
+    mutateLinkTraitProb = double.parse(fields[1]);
+
+    fields = lines[16].split(' ');
+    mutateNodeTraitProb = double.parse(fields[1]);
+
+    fields = lines[17].split(' ');
+    mutateLinkWeightsProb = double.parse(fields[1]);
+
+    fields = lines[18].split(' ');
+    mutateToggleEnableProb = double.parse(fields[1]);
+
+    fields = lines[19].split(' ');
+    mutateGeneReenableProb = double.parse(fields[1]);
+
+    fields = lines[20].split(' ');
+    mutateAddNodeProb = double.parse(fields[1]);
+
+    fields = lines[21].split(' ');
+    mutateAddLinkProb = double.parse(fields[1]);
+
+    fields = lines[22].split(' ');
+    interspeciesMateRate = double.parse(fields[1]);
+
+    fields = lines[23].split(' ');
+    mateMultipointProb = double.parse(fields[1]);
+
+    fields = lines[24].split(' ');
+    mateMultipointAvgProb = double.parse(fields[1]);
+
+    fields = lines[25].split(' ');
+    mateSinglepointProb = double.parse(fields[1]);
+
+    fields = lines[26].split(' ');
+    mateOnlyProb = double.parse(fields[1]);
+
+    fields = lines[27].split(' ');
+    recurOnlyProb = double.parse(fields[1]);
+
+    fields = lines[28].split(' ');
+    popSize = int.parse(fields[1]);
+
+    fields = lines[29].split(' ');
+    dropoffAge = int.parse(fields[1]);
+
+    fields = lines[30].split(' ');
+    newlinkTries = int.parse(fields[1]);
+
+    fields = lines[31].split(' ');
+    printEvery = int.parse(fields[1]);
+
+    fields = lines[32].split(' ');
+    babiesStolen = int.parse(fields[1]);
+
+    fields = lines[33].split(' ');
+    numRuns = int.parse(fields[1]);
+
+    fields = lines[34].split(' ');
+    networkActivateSigmoidSlope = double.parse(fields[1]);
+
+    fields = lines[35].split(' ');
+    networkActivateSigmoidConstant = double.parse(fields[1]);
+
+    fields = lines[36].split(' ');
+    networkAbortCount = int.parse(fields[1]);
+
+    fields = lines[37].split(' ');
+    organismFitnessMeasure = double.parse(fields[1]);
   }
 }

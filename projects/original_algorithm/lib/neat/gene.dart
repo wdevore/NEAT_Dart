@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:original_algorithm/neat/link.dart';
 import 'package:original_algorithm/neat/neat.dart';
 import 'package:original_algorithm/neat/nnode.dart';
@@ -154,7 +155,7 @@ class Gene {
     final bool isRecurrent = int.parse(matches[4]) == 1;
     final double innovation = double.parse(matches[5]);
     final double mutation = double.parse(matches[6]);
-    final bool enabled = int.parse(matches[7]) == 1;
+    final bool expressed = int.parse(matches[7]) == 1;
 
     // Find the corresponding Trait and Nodes from the provided lists.
     Trait? trait;
@@ -167,8 +168,8 @@ class Gene {
       }
     }
 
-    final NNode iNode = nodes[iNodeNum]; // Assuming nodes are indexed by ID.
-    final NNode oNode = nodes[oNodeNum];
+    final iNode = nodes.firstWhereOrNull((node) => node.nodeId == iNodeNum);
+    final oNode = nodes.firstWhereOrNull((node) => node.nodeId == oNodeNum);
 
     final Gene gene = Gene()
       ..link = Link.makeFromTrait(
@@ -181,7 +182,7 @@ class Gene {
       )
       ..innovationNum = innovation
       ..mutationNum = mutation
-      ..expressed = enabled
+      ..expressed = expressed
       ..frozen = false;
 
     // If a trait was found, derive its parameters for the link.

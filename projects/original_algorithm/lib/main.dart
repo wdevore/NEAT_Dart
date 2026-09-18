@@ -1,13 +1,59 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/material.dart';
+import 'package:original_algorithm/simulation/simulation.dart' as sim;
+import 'package:provider/provider.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final simulation = sim.Simulation();
+  await simulation.initialize();
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: simulation,
+      child: MyApp(simulation: simulation),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyApp extends StatefulWidget {
+  final sim.Simulation simulation;
+  const MyApp({super.key, required this.simulation});
 
-  // This widget is the root of your application.
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _lifecycleListener = AppLifecycleListener(
+      // Flush when app goes to background / tab is switched
+      onPause: () => widget.simulation.flushLog(),
+      onHide: () => widget.simulation.flushLog(),
+
+      // Close when app is terminating / detached
+      onDetach: () => widget.simulation.closeLog(),
+      onExitRequested: () async {
+        await widget.simulation.closeLog();
+        return AppExitResponse.exit;
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    widget.simulation.closeLog();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -84,6 +130,16 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilledButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start'),
+              onPressed: () => context.read<sim.Simulation>().run(),
+            ),
+          ),
+        ],
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
@@ -120,3 +176,34 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
+
+//   // This widget is the root of your application.
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Original NEAT Algorithm',
+//       theme: ThemeData(
+//         // This is the theme of your application.
+//         //
+//         // TRY THIS: Try running your application with "flutter run". You'll see
+//         // the application has a purple toolbar. Then, without quitting the app,
+//         // try changing the seedColor in the colorScheme below to Colors.green
+//         // and then invoke "hot reload" (save your changes or press the "hot
+//         // reload" button in a Flutter-supported IDE, or press "r" if you used
+//         // the command line to start the app).
+//         //
+//         // Notice that the counter didn't reset back to zero; the application
+//         // state is not lost during the reload. To reset the state, use hot
+//         // restart instead.
+//         //
+//         // This works for code too, not just values: Most code changes can be
+//         // tested with just a hot reload.
+//         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+//       ),
+//       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+//     );
+//   }
+// }

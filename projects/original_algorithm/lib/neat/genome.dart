@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:original_algorithm/neat/gene.dart';
 import 'package:original_algorithm/neat/innovation.dart';
 import 'package:original_algorithm/neat/iterator_genes_list.dart';
@@ -401,6 +402,66 @@ class Genome {
     return newGenome;
   }
 
+  factory Genome.makeFromFile(Neat neat, int id, List<String> lines) {
+    var genome = Genome()..genomeId = id;
+
+    List<String> fields;
+    for (var i = 1; i < lines.length - 1; i++) {
+      fields = lines[i].split(' ');
+
+      if (fields.isEmpty) continue;
+
+      if (kDebugMode) print("${fields[0]} line");
+
+      if (fields[0] == "genomeend") {
+        int idCheck = int.parse(fields[1]);
+        if (idCheck != genome.genomeId) {
+          if (kDebugMode) {
+            print(
+              "ERROR: id mismatch in genome. Got: $idCheck Expected: ${genome.genomeId}",
+            );
+          }
+        }
+        break;
+      }
+      // Ignore genomestart if it hasn't been gobbled yet
+      else if (fields[0] == "genomestart") {
+        if (kDebugMode) print("genomestart\n");
+      }
+      // Read in a trait
+      else if (fields[0] == "trait") {
+        // Allocate the new trait
+        var newtrait = Trait.makeFromLine(neat, lines[i]);
+
+        // Add the trait to the list of traits
+        genome.traits.add(newtrait);
+      }
+      // Read in a node
+      else if (fields[0] == "node") {
+        // Allocate the new node
+        var node = NNode.makeFromLine(lines[i], genome.traits);
+
+        // Add the node to the list of nodes
+        genome.nodes.add(node);
+      }
+      // Read in a gene
+      else if (fields[0] == "gene") {
+        // Allocate the new gene
+        var gene = Gene.makeFromLine(
+          neat,
+          lines[i],
+          genome.traits,
+          genome.nodes,
+        );
+
+        // Add the gene to the genome
+        genome.genes.add(gene);
+      }
+    }
+
+    return genome;
+  }
+
   int getLastNodeId() {
     if (nodes.isEmpty) {
       return -1; // Or handle as an error, returning -1 is an error
@@ -514,7 +575,7 @@ class Genome {
     for (var node in nodes) {
       Trait? assocTrait;
       // First, find the trait that this node points to
-      if (node.nodeTrait == null) {
+      if (node.nodeTrait != null) {
         final it = traitsDup.firstWhereOrNull(
           (t) => t.traitId == node.nodeTrait!.traitId,
         );

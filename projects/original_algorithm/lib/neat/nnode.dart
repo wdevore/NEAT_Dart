@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:original_algorithm/neat/link.dart';
 import 'package:original_algorithm/neat/neat.dart';
 import 'package:original_algorithm/neat/trait.dart';
@@ -195,9 +196,11 @@ class NNode {
     var nde = NNode();
 
     // Parse all values from the matched strings.
-    nde.nodeId = int.parse(matches[1]);
-    nde.traitId = int.parse(matches[2]);
-    var type = int.parse(matches[3]);
+    nde.nodeId = int.parse(matches[0]);
+
+    var traitId = int.parse(matches[1]); // traitnum
+
+    var type = int.parse(matches[2]);
     switch (type) {
       case 0:
         nde.type = Nodetype.neuron;
@@ -210,7 +213,7 @@ class NNode {
         break;
     }
 
-    var genLabel = int.parse(matches[4]);
+    var genLabel = int.parse(matches[3]);
     switch (genLabel) {
       case 0:
         nde.genNodeLabel = Nodeplace.hidden;
@@ -233,11 +236,10 @@ class NNode {
     // mySensor = SensorRegistry::getSensor(id, param);
     nde.frozen = false; // TODO: Maybe change
 
-    if (nde.traitId == 0) {
+    if (traitId == 0) {
       nde.nodeTrait = null;
     } else {
-      // TODO convert to try/catch
-      nde.nodeTrait = traits.firstWhere((t) => t.traitId == nde.traitId);
+      nde.nodeTrait = traits.firstWhereOrNull((t) => t.traitId == nde.traitId);
       nde.traitId = nde.nodeTrait!.traitId;
     }
 

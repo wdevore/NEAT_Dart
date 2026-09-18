@@ -6,14 +6,14 @@ import 'package:original_algorithm/neat/organism.dart';
 import 'package:original_algorithm/neat/species.dart';
 
 class Population {
-  late List<Organism> organisms; // The organisms in the Population
+  List<Organism> organisms = []; // The organisms in the Population
 
   // Species in the Population. Note that the species should comprise all the genomes
-  late List<Species> species;
+  List<Species> species = [];
 
   // ******* Member variables used during reproduction *******
   // For holding the genetic innovations of the newest generation
-  late List<Innovation> innovations;
+  List<Innovation> innovations = [];
   int curNodeId = 0; // Current label number available
   double curInnovNum = 0.0;
 
@@ -121,7 +121,6 @@ class Population {
       // neat.log("CREATING ORGANISM count: ", id);
 
       newGenome = g.duplicate(neat, id);
-      // newGenome.mutate_link_weights(1.0,1.0,Mutator::GAUSSIAN);
       newGenome.mutateLinkWeights(neat, 1.0, 1.0, Mutator.coldgaussian);
       newGenome.randomizeTraits(neat);
 
