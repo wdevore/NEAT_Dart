@@ -71,10 +71,13 @@ class Species {
   }
 
   void adjustFitness(Neat neat) {
-    // neat.log("########## Species::adjust_fitness ############");
-    // neat.log("organisms count: ", (int)organisms.size());
-    // neat.log("Species (id, last improved): ", id, (age - ageOIlast_improvement));
-    // neat.log("steps ago when it moved up to: ", max_fitness_ever);
+    neat.log("########## Species::adjust_fitness ############");
+    neat.log("organisms count: ${organisms.length}");
+    neat.log(
+      "Species id: $id, last improved: ${age - ageOfLastImprovement}",
+      true,
+    );
+    neat.log("steps prior when it moved up to: $maxFitnessEver");
 
     int ageDebt = (age - ageOfLastImprovement + 1) - neat.dropoffAge;
 
@@ -94,8 +97,8 @@ class Species {
 
         // Extreme penalty for a long period of stagnation (divide fitness by 100)
         curOrg.fitness = curOrg.fitness * 0.01;
-        // neat.log("OBLITERATE Species (id,age): ", id, age);
-        // neat.log("dropped fitness to ", (curorg.fitness));
+        neat.log("OBLITERATE Species id: $id,age: $age");
+        neat.log("dropped fitness to ${curOrg.fitness}");
       }
 
       // Give a fitness boost up to some young age (niching)
@@ -109,7 +112,7 @@ class Species {
 
       // Share fitness with the species
       curOrg.fitness = curOrg.fitness / organisms.length;
-      // neat.log("Sharing fitness: ", curOrg.fitness);
+      // neat.log("Sharing fitness ${curOrg.fitness}");
     }
 
     // Sort the population and mark for death those after survival_thresh*pop_size
@@ -299,6 +302,7 @@ class Species {
     bool mutStruct = false;
 
     if (theChamp.superChampOffspring > 1) {
+      // TODO replace magic number 0.8
       if (neat.randFloat() < 0.8 || neat.mutateAddLinkProb == 0.0) {
         newGenome.mutateLinkWeights(
           neat,

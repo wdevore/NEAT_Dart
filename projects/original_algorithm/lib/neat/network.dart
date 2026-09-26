@@ -100,16 +100,8 @@ class Network {
     return net;
   }
 
-  // If all output are not active then return true
-  bool outputsoff() {
-    for (var curnode in outputs) {
-      if (curnode.activationCount == 0) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+  /// Returns true if any output has not yet been activated (activationCount == 0).
+  bool outputsOff() => outputs.any((node) => node.activationCount == 0);
 
   (bool isRecur, int count) isRecurrent(
     NNode potinNode,
@@ -170,11 +162,11 @@ class Network {
       n.activeFlag = false;
     }
 
-    while (outputsoff() || !oneTime) {
+    while (outputsOff() || !oneTime) {
       abortCount++;
 
       if (abortCount == neat.networkAbortCount) {
-        // neat.log("Inputs disconnected from output!");
+        neat.log("Inputs disconnected from output!");
         return false;
       }
       // neat.log("Outputs are off");
@@ -212,7 +204,7 @@ class Network {
         } // End if (curnode.type != SENSOR)
       } // End for over all nodes
 
-      // Now activate all the non-sensor nodes off their incoming activation
+      // Now activate all the non-sensor nodes based on their incoming activation
       for (var curNode in sortedNodes) {
         if (!curNode.isSensor()) {
           // Only activate if some active input came in
@@ -320,14 +312,19 @@ class Network {
   }
 
   // Takes an array of sensor values and loads it into SENSOR inputs ONLY
-  double loadSensors(double sensvals) {
-    for (var sensPtr in inputs) {
+  void loadSensors(List<double> sensvals) {
+    int index = 0;
+    for (final sensPtr in inputs) {
       // only load values into SENSORS (not BIASes)
-      if (sensPtr.isSensor()) {
-        sensPtr.sensorLoad(sensvals);
-        sensvals++;
-      }
+      sensPtr.sensorLoad(sensvals[index]);
+      index++;
     }
-    return sensvals;
+  }
+
+  void flush() {
+    // Puts the network back into an initial state
+    for (final curnode in outputs) {
+      curnode.flushback();
+    }
   }
 }

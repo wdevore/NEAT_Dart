@@ -38,7 +38,7 @@ class Genome {
   List<NNode> nodes = []; // List of NNodes for the Network
   List<Gene> genes = []; // List of innovation-tracking genes
 
-  // Allows Genome to be matched with its Network. Constructed in genesis()
+  /// Allows Genome to be matched with its Network. Constructed in genesis()
   Network? phenoType;
 
   Genome();

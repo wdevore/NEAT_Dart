@@ -12,7 +12,7 @@ class Simulation extends ChangeNotifier {
     neat = Neat();
     neat.initialize();
 
-    neat.loadNeatParams("assets/p2test.ne");
+    await neat.loadNeatParams("assets/p2test.ne");
     await neat.openLog("/media/RAMDisk/neatdart.log");
     neat.log("NeatDart log");
 

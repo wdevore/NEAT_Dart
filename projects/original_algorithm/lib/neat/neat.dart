@@ -218,6 +218,7 @@ class Neat {
   // Log to a file
   IOSink? _logSink;
   Timer? _flushTimer;
+  bool _isFlushing = false; // Guard flag
 
   /// Opens a log file at the given path for writing.
   ///
@@ -243,25 +244,43 @@ class Neat {
   }
 
   /// Writes a message to the log file, followed by a newline.
-  void log(String message) {
+  void log(String message, [bool enabled = false]) {
     _logSink?.writeln(message);
   }
 
   /// Manually flushes buffered log entries to disk.
   Future<void> flushLog() async {
+    if (_isFlushing || _logSink == null) return;
+    _isFlushing = true;
+
     if (kDebugMode) {
       print('Flushing log file');
     }
-    await _logSink?.flush();
+    try {
+      await _logSink?.flush();
+    } catch (e) {
+      // Ignored if sink was busy/closed
+    } finally {
+      _isFlushing = false;
+    }
   }
 
   /// Flushes and closes the log file stream
   Future<void> closeLog() async {
     _flushTimer?.cancel();
     _flushTimer = null;
-    await _logSink?.flush();
-    await _logSink?.close();
+
+    // Wait if a flush is currently running
+    while (_isFlushing) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+    try {
+      await _logSink?.flush();
+      await _logSink?.close();
+    } catch (_) {}
+
     _logSink = null;
+
     if (kDebugMode) {
       print('Closed log file');
     }
@@ -285,7 +304,7 @@ class Neat {
     }
   }
 
-  void loadNeatParams(String s) async {
+  Future<void> loadNeatParams(String s) async {
     // 1. Load the raw text from the .ne asset
     final String fileContent = await rootBundle.loadString(
       'lib/assets/p2test.ne',
@@ -395,6 +414,7 @@ class Neat {
 
     fields = lines[33].split(' ');
     numRuns = int.parse(fields[1]);
+    print("here $numRuns");
 
     fields = lines[34].split(' ');
     networkActivateSigmoidSlope = double.parse(fields[1]);

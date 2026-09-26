@@ -18,16 +18,18 @@ enum Functype { unset, sigmoid }
 ///
 /// Use an activation count to avoid flushing
 class NNode {
-  // keeps track of which activation the node is currently in
+  /// keeps track of which activation the node is currently in
   int activationCount = 0;
-  // Holds the previous step's activation for recurrency
+
+  /// Holds the previous step's activation for recurrency
   double lastActivation = 0.0;
-  // Holds the activation BEFORE the prevous step's
+
+  /// Holds the activation BEFORE the prevous step's
   double lastActivation2 = 0.0;
 
-  // This is necessary for a special recurrent case when the innode
-  // of a recurrent link is one time step ahead of the outnode.
-  // The innode then needs to send from TWO time steps ago
+  /// This is necessary for a special recurrent case when the innode
+  /// of a recurrent link is one time step ahead of the outnode.
+  /// The innode then needs to send from TWO time steps ago
   Trait? nodeTrait; // Points to a trait of parameters
 
   int traitId = 0; // identify the trait derived by this node
@@ -36,25 +38,26 @@ class NNode {
 
   NNode? analogue; // Used for Gene decoding
 
-  // The NNode cannot compute its own output- something is overriding it
+  /// The NNode cannot compute its own output- something is overriding it
   bool override = false;
 
-  // Contains the activation value that will override this node's activation
+  /// Contains the activation value that will override this node's activation
   double overrideValue = 0.0;
 
-  // When frozen, cannot be mutated (meaning its trait pointer is fixed)
+  /// When frozen, cannot be mutated (meaning its trait pointer is fixed)
   bool frozen = false;
 
-  // type is either SIGMOID ..or others that can be added
+  /// type is either SIGMOID ..or others that can be added
   Functype ftype = Functype.unset;
-  // type is either NEURON or SENSOR
+
+  /// type is either NEURON or SENSOR
   Nodetype type = Nodetype.unset;
 
   double activeSum = 0.0; // The incoming activity before being processed
   double activation = 0.0; // The total activation entering the NNode
   bool activeFlag = false; // To make sure outputs are active
 
-  // NOT USED IN NEAT - covered by "activation" above
+  /// NOT USED IN NEAT - covered by "activation" above
   double output = 0.0; // Output of the NNode- the value in the NNode
 
   // ************ LEARNING PARAMETERS ***********
@@ -64,12 +67,13 @@ class NNode {
 
   List<double> params = [];
 
-  // A list of pointers to incoming weighted signals from other nodes
+  /// A list of pointers to incoming weighted signals from other nodes
   List<Link> incoming = [];
-  // A list of pointers to links carrying this node's signal
+
+  /// A list of pointers to links carrying this node's signal
   List<Link> outgoing = [];
 
-  // These members are used for graphing with GTK+/GDK
+  /// These members are used for graphing with GTK+/GDK
   late List<double> rowLevels; // Depths from output where this node appears
 
   int row = 0; // Final row decided upon for drawing this NNode in
@@ -268,23 +272,23 @@ class NNode {
     }
   }
 
-  // Return activation currently in node, if it has been activated, for step
+  /// Return activation currently in node, if it has been activated, for step
   double getActiveOut() {
     return (activationCount > 0) ? activation : 0.0;
   }
 
-  // Return activation currently in node from PREVIOUS (time-delayed) time step,
-  // if there is one
+  /// Return activation currently in node from PREVIOUS (time-delayed) time step,
+  /// if there is one
   double getActiveOutTd() {
     return (activationCount > 1) ? lastActivation : 0.0;
   }
 
-  // Tell whether node has been overridden
+  /// Tell whether node has been overridden
   bool overridden() {
     return override;
   }
 
-  // Set activation to the override value and turn off override
+  /// Set activation to the override value and turn off override
   void activateOverride() {
     activation = overrideValue;
     override = false;
@@ -297,19 +301,19 @@ class NNode {
   // 2. It allows genetic control of the proportion of connections
   //    that may become recurrent
 
-  // Add an incoming connection a node
+  /// Add an incoming connection a node
   void addIncoming(Neat neat, NNode feednode, double weight, bool recurrent) {
     var newlink = Link.makeFromNodes(neat, weight, feednode, this, recurrent);
     incoming.add(newlink);
     feednode.outgoing.add(newlink);
   }
 
-  // Nonrecurrent version
+  /// Nonrecurrent version
   void addIncomingNonRecurrent(Neat neat, NNode feednode, double weight) {
     return addIncoming(neat, feednode, weight, false);
   }
 
-  // This recursively flushes everything leading into and including this NNode,
+  /// This recursively flushes everything leading into and including this NNode,
   // including recurrencies
   void flushback() {
     // A sensor should not flush black
@@ -341,9 +345,9 @@ class NNode {
     }
   }
 
-  // This recursively checks everything leading into and including this NNode,
-  // including recurrencies
-  // Useful for debugging
+  /// This recursively checks everything leading into and including this NNode,
+  /// including recurrencies
+  /// Useful for debugging
   void flushbackCheck(List<NNode> seenlist) {
     if (!isSensor()) {
       // std::cout<<"ALERT: "<<this<<" has activation count "<<activation_count<<std::endl;
@@ -371,7 +375,7 @@ class NNode {
       //     std::cout << "ALERT: " << this << " has last_activation2  " << last_activation2 << std::endl;
       // }
 
-      for (var link in incoming) {
+      for (final link in incoming) {
         if (link.inNode != null) {
           try {
             seenlist.firstWhere(
@@ -416,7 +420,7 @@ class NNode {
     }
   }
 
-  // Reserved for future system expansion
+  /// Reserved for future system expansion
   void deriveTrait(Neat neat, Trait? currentTrait) {
     if (currentTrait != null) {
       params = currentTrait.params;

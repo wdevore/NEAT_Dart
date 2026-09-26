@@ -5,7 +5,7 @@ import 'package:original_algorithm/neat/species.dart';
 
 class Organism {
   double fitness = 0.0; // A measure of fitness for the Organism
-  // A fitness measure that won't change during adjustments
+  /// A fitness measure that won't change during adjustments
   double origFitness = 0.0;
   double error = 0.0; // Used just for reporting purposes
   bool winner = false; // Win marker (if needed for a particular task)
@@ -16,20 +16,20 @@ class Organism {
   int generation = 0; // Tells which generation this Organism is from
   bool eliminate = false; // Marker for destruction of inferior Organisms
   bool champion = false; // Marks the species champ
-  // Number of reserved offspring for a population leader
+  /// Number of reserved offspring for a population leader
   int superChampOffspring = 0;
   bool popChamp = false; // Marks the best in population
-  // Marks the duplicate child of a champion (for tracking purposes)
+  /// Marks the duplicate child of a champion (for tracking purposes)
   bool popChampChild = false;
   double highFit = 0.0; // DEBUG variable- high fitness of champ
-  // When playing in real-time allows knowing the maturity of an individual
+  /// When playing in real-time allows knowing the maturity of an individual
   int timeAlive = 0;
 
   // Track its origin- for debugging or analysis- we can tell how the organism was born
   bool mutStructBaby = false;
   bool mateBaby = false;
 
-  // MetaData for the object
+  /// MetaData for the object
   String metadata = "";
   bool modified = false;
 

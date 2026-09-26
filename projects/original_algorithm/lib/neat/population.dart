@@ -110,7 +110,7 @@ class Population {
   // There will be size Genomes added to the Population
   // The Population does not have to be empty to add Genomes
   bool spawn(Neat neat, Genome g, int size) {
-    // neat.log("Population::spawn START ");
+    neat.log("Population::spawn START ");
 
     Genome newGenome;
     Organism newOrganism;
@@ -139,7 +139,7 @@ class Population {
     // Separate the new Population into species
     speciate(neat);
 
-    // neat.log("Population::spawn END ");
+    neat.log("Population::spawn END ");
 
     return true;
   }
@@ -195,7 +195,7 @@ class Population {
     }
 
     lastSpecies = speciesCounter; // Keep track of highest species
-    // neat.log("Population::speciate END ");
+    neat.log("Population::speciate END ");
 
     return true;
   }
@@ -212,6 +212,8 @@ class Population {
 
   bool epoch(Neat neat, int generation) {
     neat.log("########## Population::epoch START ############");
+    // Stick the Species pointers into a new Species list for sorting
+    neat.log("Species in population: ${species.length}", true);
 
     // Phase 1: Flag stagnant species & adjust fitness within all species
     _adjustAllSpeciesFitness(neat, generation);
