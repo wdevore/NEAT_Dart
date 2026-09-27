@@ -218,7 +218,7 @@ class Neat {
   // Log to a file
   IOSink? _logSink;
   Timer? _flushTimer;
-  bool _isFlushing = false; // Guard flag
+  Completer<void>? _flushCompleter;
 
   /// Opens a log file at the given path for writing.
   ///
@@ -231,15 +231,13 @@ class Neat {
       _logSink = file.openWrite(mode: FileMode.write);
 
       // Periodically flush every 2 seconds
-      _flushTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-        _logSink?.flush();
-      });
+      // _flushTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      //   _logSink?.flush();
+      // });
     } catch (e) {
       // In a real application, you might use a more robust logging package
       // or error handling strategy.
-      if (kDebugMode) {
-        print('Error opening log file: $e');
-      }
+      if (kDebugMode) print('Error opening log file: $e');
     }
   }
 
@@ -250,18 +248,26 @@ class Neat {
 
   /// Manually flushes buffered log entries to disk.
   Future<void> flushLog() async {
-    if (_isFlushing || _logSink == null) return;
-    _isFlushing = true;
+    final sink = _logSink;
+    if (sink == null) return;
 
-    if (kDebugMode) {
-      print('Flushing log file');
+    while (_flushCompleter != null) {
+      await _flushCompleter!.future;
+      if (_logSink == null) return;
     }
+
+    final completer = Completer<void>();
+    _flushCompleter = completer;
+
     try {
-      await _logSink?.flush();
+      await sink.flush();
     } catch (e) {
       // Ignored if sink was busy/closed
     } finally {
-      _isFlushing = false;
+      _flushCompleter = null;
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     }
   }
 
@@ -271,8 +277,8 @@ class Neat {
     _flushTimer = null;
 
     // Wait if a flush is currently running
-    while (_isFlushing) {
-      await Future.delayed(const Duration(milliseconds: 50));
+    while (_flushCompleter != null) {
+      await _flushCompleter!.future;
     }
     try {
       await _logSink?.flush();
@@ -414,7 +420,6 @@ class Neat {
 
     fields = lines[33].split(' ');
     numRuns = int.parse(fields[1]);
-    print("here $numRuns");
 
     fields = lines[34].split(' ');
     networkActivateSigmoidSlope = double.parse(fields[1]);

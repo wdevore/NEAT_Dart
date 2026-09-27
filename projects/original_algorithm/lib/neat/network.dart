@@ -120,7 +120,7 @@ class Network {
       return (true, countR);
     } else {
       // Check back on all links...
-      for (var curlink in potinNode.incoming) {
+      for (final curlink in potinNode.incoming) {
         // But skip links that are already recurrent
         // We want to check back through the forward flow of signals only
         if (!curlink.isRecurrent) {
@@ -158,7 +158,7 @@ class Network {
     List<NNode> sortedNodes = allNodes;
     sortedNodes.sort((a, b) => a.depth.compareTo(b.depth));
 
-    for (var n in sortedNodes) {
+    for (final n in sortedNodes) {
       n.activeFlag = false;
     }
 
@@ -172,7 +172,7 @@ class Network {
       // neat.log("Outputs are off");
 
       // For each node, compute the sum of its incoming activation
-      for (var curNode in sortedNodes) {
+      for (final curNode in sortedNodes) {
         // Ignore SENSORS
         // neat.log("On node ", curNode.nodeId);
         if (!curNode.isSensor()) {
@@ -181,7 +181,7 @@ class Network {
           curNode.activeFlag = false;
 
           // For each incoming connection, add the activity from the connection to the activesum
-          for (var curLink in curNode.incoming) {
+          for (final curLink in curNode.incoming) {
             // Handle possible time delays
             if (!curLink.timeDelay) {
               addAmount = curLink.weight * curLink.inNode!.getActiveOut();
@@ -205,7 +205,7 @@ class Network {
       } // End for over all nodes
 
       // Now activate all the non-sensor nodes based on their incoming activation
-      for (var curNode in sortedNodes) {
+      for (final curNode in sortedNodes) {
         if (!curNode.isSensor()) {
           // Only activate if some active input came in
           if (curNode.activeFlag) {
@@ -246,7 +246,7 @@ class Network {
     if (adaptable) {
       // neat.log("ADAPTING");
       // ADAPTATION:  Adapt weights based on activations
-      for (var curNode in allNodes) {
+      for (final curNode in allNodes) {
         // Ignore SENSORS
         // neat.log("Ignore SENSORS: On node ", curnode.node_id);
 

@@ -7,6 +7,8 @@ abstract class Experiment {
 
   Experiment();
 
-  void initialize(Neat neat, int gens);
-  bool runExperiment(Neat neat);
+  Future<void> initialize(Neat neat, int gens);
+  Future<bool> runExperiment(Neat neat);
+  Future<bool> runGeneration(Neat neat, int gen);
+  void postTest(Neat neat);
 }

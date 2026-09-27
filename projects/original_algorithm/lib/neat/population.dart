@@ -251,6 +251,8 @@ class Population {
   void _adjustAllSpeciesFitness(Neat neat, int generation) {
     // Flag lowest performing older species for obliteration every 30 gens (coevolution)
     if (generation % 30 == 0) {
+      neat.log("Number of Species: ${species.length}");
+
       final oldSpecies = species.where((s) => s.age >= 20).toList()
         ..sort(
           (a, b) => a.computeMaxFitness().compareTo(b.computeMaxFitness()),
@@ -434,6 +436,11 @@ class Population {
 
   // Phase 6: Post-Reproduction Maintenance
   void _postReproductionCleanup(Neat neat, int bestSpeciesNum) {
+    // remove all old organisms from their species before clearing the population list:
+    for (final oldOrg in organisms) {
+      oldOrg.species.removeOrg(oldOrg);
+    }
+
     organisms.clear();
     species.removeWhere((s) => s.organisms.isEmpty);
 

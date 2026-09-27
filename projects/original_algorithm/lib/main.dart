@@ -8,7 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final simulation = sim.Simulation();
-  await simulation.initialize();
+  await simulation.initialize(200);
 
   runApp(
     ChangeNotifierProvider.value(
@@ -134,9 +134,16 @@ class _MyHomePageState extends State<MyHomePage> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: FilledButton.icon(
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Start'),
-              onPressed: () => context.read<sim.Simulation>().run(),
+              label: const Text('Run 1 Experiment'),
+              onPressed: () =>
+                  context.read<sim.Simulation>().runSingleExperiment(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilledButton.icon(
+              label: const Text('Run Full Sim'),
+              onPressed: () => context.read<sim.Simulation>().runSimulation(),
             ),
           ),
         ],

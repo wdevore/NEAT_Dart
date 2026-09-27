@@ -8,7 +8,7 @@ class Simulation extends ChangeNotifier {
 
   Simulation();
 
-  Future<void> initialize() async {
+  Future<void> initialize(int generationsToRun) async {
     neat = Neat();
     neat.initialize();
 
@@ -17,7 +17,7 @@ class Simulation extends ChangeNotifier {
     neat.log("NeatDart log");
 
     exor = ExperimentXor();
-    exor.initialize(neat, 1);
+    await exor.initialize(neat, generationsToRun);
 
     notifyListeners();
   }
@@ -25,7 +25,39 @@ class Simulation extends ChangeNotifier {
   Future<void> flushLog() => neat.flushLog();
   Future<void> closeLog() => neat.closeLog();
 
-  void run() {
-    exor.runExperiment(neat);
+  Future<void> runSingleExperiment() async {
+    await exor.runExperiment(neat);
+    await neat.flushLog();
+  }
+
+  Future<void> runSimulation() async {
+    // Runs a series of experiments until a winner is found or commanded
+    // to stop, or number of runs met.
+    try {
+      do {
+        neat.log("Running experiment: ${exor.experimentCnt}");
+        if (kDebugMode) print("Running experiment: ${exor.experimentCnt}");
+
+        await exor.runExperiment(neat);
+        neat.log(
+          "Experiment complete: Winner? ${exor.winnerFound ? "Yes" : "No"}",
+        );
+        if (kDebugMode) {
+          print(
+            "Experiment complete: Winner? ${exor.winnerFound ? "Yes" : "No"}",
+          );
+        }
+        await neat.flushLog();
+      } while (!exor.winnerFound && /*!paused &&*/
+          exor.experimentCnt < neat.numRuns);
+
+      showReport(neat);
+    } finally {
+      await neat.flushLog();
+    }
+  }
+
+  void showReport(Neat neat) {
+    exor.postTest(neat);
   }
 }

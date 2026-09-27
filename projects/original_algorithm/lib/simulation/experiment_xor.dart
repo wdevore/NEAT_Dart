@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:original_algorithm/neat/genome.dart';
 import 'package:original_algorithm/neat/neat.dart';
@@ -28,7 +29,7 @@ class ExperimentXor extends Experiment {
   late Genome startGenome;
 
   @override
-  void initialize(Neat neat, int gens) async {
+  Future<void> initialize(Neat neat, int gens) async {
     pop = Population();
     this.gens = gens;
 
@@ -50,26 +51,32 @@ class ExperimentXor extends Experiment {
   }
 
   @override
-  bool runExperiment(Neat neat) {
+  Future<bool> runExperiment(Neat neat) async {
     spawnPopulation(neat);
 
-    neat.log("Running Experiment: START $experimentCnt", true);
+    neat.log("Running Experiment: START $experimentCnt");
 
     for (generationCnt = 0; generationCnt <= gens; generationCnt++) {
-      winnerFound = runGeneration(neat, generationCnt);
+      winnerFound = await runGeneration(neat, generationCnt);
+      if (kDebugMode) {
+        print("Ran Generation $generationCnt");
+      }
+      await neat.flushLog();
+
       if (winnerFound) break;
     }
 
-    neat.log("Running Experiment: END $experimentCnt", true);
+    neat.log("Running Experiment: END $experimentCnt");
 
     experimentCnt++;
 
     return winnerFound;
   }
 
-  bool runGeneration(Neat neat, int gen) {
+  @override
+  Future<bool> runGeneration(Neat neat, int gen) async {
     neat.log("=======================================================");
-    neat.log("Running Generation (id): $gen", true);
+    neat.log("Running Generation (id): $gen");
 
     winnerFound = executeGen(neat, gen);
 
@@ -79,8 +86,8 @@ class ExperimentXor extends Experiment {
   bool executeGen(Neat neat, int genID) {
     bool winnerFound = false;
 
-    neat.log("=============================================", true);
-    neat.log("=== Epoch Beginning: Expr: $experimentCnt, GenId: $genID", true);
+    neat.log("=============================================");
+    neat.log("=== Epoch Beginning: Expr: $experimentCnt, GenId: $genID");
     neat.log("=============================================");
     String fileName = "gen_$genID";
 
@@ -93,6 +100,7 @@ class ExperimentXor extends Experiment {
       winnergenes,
       winnernodes,
     );
+
     // Check for success
     if (win) {
       // Collect Stats on end of experiment
@@ -103,8 +111,8 @@ class ExperimentXor extends Experiment {
     }
 
     neat.log("=============================================");
-    neat.log("=== Epoch Complete: GenId: $genID", true);
-    neat.log("=============================================", true);
+    neat.log("=== Epoch Complete: GenId: $genID");
+    neat.log("=============================================");
 
     return winnerFound;
   }
@@ -122,15 +130,16 @@ class ExperimentXor extends Experiment {
 
     // Evaluate each organism on a test
     for (var org in pop.organisms) {
-      if (evaluate(neat, org)) {
-        win = true;
+      win = evaluate(neat, org);
+      if (win) {
         winnernum = org.gnome.genomeId;
         winnergenes = org.gnome.extrons();
         winnernodes = org.gnome.nodes.length;
+
         if (winnernodes == 5) {
           // You could dump out optimal genomes here if desired
           //(*curorg).gnome.print_to_filename("xor_optimal");
-          neat.log("DUMPED OPTIMAL: ${org.gnome.genomeId}", true);
+          neat.log("DUMPED OPTIMAL: ${org.gnome.genomeId}");
           // print_Genome_tofile((*curorg).gnome, "xor_optimal")
           // cout<<"DUMPED OPTIMAL"<<endl;
         }
@@ -152,7 +161,7 @@ class ExperimentXor extends Experiment {
       var winners = [];
       for (final org in pop.organisms) {
         if (org.winner) {
-          // neat.log("WINNER IS # ${org.gnome.genomeId}", true);
+          // neat.log("WINNER IS # ${org.gnome.genomeId}");
           winners.add(org.gnome.genomeId);
 
           // Prints the winner to file
@@ -161,7 +170,7 @@ class ExperimentXor extends Experiment {
         }
       }
       var ids = winners.join(",");
-      neat.log("Winners: $ids");
+      neat.log("Winners are: $ids");
     }
 
     pop.epoch(neat, generation);
@@ -182,11 +191,18 @@ class ExperimentXor extends Experiment {
 
     // The four possible input combinations to xor
     // The first number is for biasing
+    // final List<List<double>> inP = [
+    //   [1.0, 0.0, 1.0], // XOR: 1 ^ 0 ==> 1
+    //   [0.0, 1.0, 1.0], // XOR: 0 ^ 1 ==> 1
+    //   [1.0, 1.0, 1.0], // XOR: 1 ^ 1 ==> 0
+    //   [0.0, 0.0, 1.0], // XOR: 0 ^ 0 ==> 0
+    // ];
+
     final List<List<double>> inP = [
-      [1.0, 0.0, 1.0], // XOR: 1 ^ 0 ==> 1
-      [0.0, 1.0, 1.0], // XOR: 0 ^ 1 ==> 1
-      [1.0, 1.0, 1.0], // XOR: 1 ^ 1 ==> 0
-      [0.0, 0.0, 1.0], // XOR: 0 ^ 0 ==> 0
+      [1.0, 0.0, 0.0], // XOR: 1 ^ 0 ==> 1
+      [1.0, 0.0, 1.0], // XOR: 0 ^ 1 ==> 1
+      [1.0, 1.0, 0.0], // XOR: 1 ^ 1 ==> 0
+      [1.0, 1.0, 1.0], // XOR: 0 ^ 0 ==> 0
     ];
 
     Network net = org.net;
@@ -222,7 +238,7 @@ class ExperimentXor extends Experiment {
           out[3].abs());
       org.fitness = pow(4.0 - errorsum, 2).toDouble();
       org.error = errorsum;
-      // neat.log("Evaluate: new fitness: ${org.fitness}", true);
+      // neat.log("Evaluate: new fitness: ${org.fitness}");
     } else {
       // The network is flawed (shouldn't happen)
       errorsum = 999.0;
@@ -255,5 +271,48 @@ class ExperimentXor extends Experiment {
 
     neat.log("Verifying Spawned Pop");
     pop.verify();
+  }
+
+  @override
+  void postTest(Neat neat) {
+    neat.log("========== POST TEST ===============");
+
+    // Average and print stats
+    neat.log("Nodes size: ${nodes.length}");
+    for (final nodeCount in nodes) {
+      neat.log("Node count: $nodeCount");
+      totalnodes += nodeCount;
+    }
+
+    neat.log("Genes size: ${genes.length}");
+    for (final geneCount in genes) {
+      neat.log("Gene count: $geneCount");
+      totalgenes += geneCount;
+    }
+
+    neat.log("Evals count: ${evals.length}");
+    int samples = 0;
+    for (final evalCount in evals) {
+      neat.log("Eval count: $evalCount");
+      if (evalCount > 0) {
+        totalevals += evalCount;
+        samples++;
+      }
+    }
+
+    neat.log("Samples: $samples");
+    neat.log(
+      "Failures: numRuns: ${neat.numRuns - samples}, out of: ${neat.numRuns}",
+    );
+    neat.log(
+      "Average Nodes: ${samples > 0 ? (totalnodes.toDouble() / samples) : 0}",
+    );
+    neat.log(
+      "Average Genes: ${samples > 0 ? (totalgenes.toDouble() / samples) : 0}",
+    );
+    neat.log(
+      "Average Evals: ${samples > 0 ? (totalevals.toDouble() / samples) : 0}",
+    );
+    neat.log("============================================================");
   }
 }

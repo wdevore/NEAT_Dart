@@ -117,7 +117,7 @@ class Species {
 
     // Sort the population and mark for death those after survival_thresh*pop_size
     // organisms.qsort(orderOIs);
-    organisms.sort((a, b) => a.fitness.compareTo(b.fitness));
+    organisms.sort((a, b) => b.fitness.compareTo(a.fitness));
 
     // Update ageOIlast_improvement here
     var begin = organisms.first;
@@ -245,7 +245,7 @@ class Species {
       return false;
     }
 
-    final theChamp = organisms.last;
+    final theChamp = organisms.first;
     bool champPreserved = false;
 
     // Create the designated number of offspring for this species
@@ -499,8 +499,8 @@ class Species {
       final curSpecies = pop.species[i];
       final compOrg = curSpecies.first();
 
-      if (baby.gnome.compatibility(neat, compOrg.gnome) <
-          neat.compatThreshold) {
+      final compatibility = baby.gnome.compatibility(neat, compOrg.gnome);
+      if (compatibility < neat.compatThreshold) {
         curSpecies.addOrganism(neat, baby);
         baby.species = curSpecies;
         return;
@@ -516,7 +516,7 @@ class Species {
 
   bool rank() {
     // organisms.qsort(order_orgs);
-    organisms.sort((a, b) => a.fitness.compareTo(b.fitness));
+    organisms.sort((a, b) => b.fitness.compareTo(a.fitness));
 
     return true;
   }
